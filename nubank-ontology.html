@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nubank Engineering Ontology</title>
+<meta name="description" content="A Palantir-style ontology over Nubank's codebases: a deterministic structural tier, a squad-owned concept tier, and the functions and actions an AI code-review agent uses on top of them.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#F6F3FA; --surface:#FFFFFF; --surface-2:#EFEAF6; --ink:#1B1530; --ink-2:#4A4360; --muted:#7B7490; --line:#DED8EB; --line-2:#CFC7E2;
+  --nu:#820AD1; --nu-ink:#6A08AB; --nu-soft:#F0E3FB;
+  --struct:#0F7C86; --struct-soft:#DCF0F2; --struct-ink:#0B5F67;
+  --concept:#820AD1; --concept-soft:#F0E3FB; --concept-ink:#6A08AB;
+  --fn:#B4620F; --fn-soft:#FBEBD6; --fn-ink:#8F4C08;
+  --act:#C1275E; --act-soft:#FADCE6; --act-ink:#9A1C4A;
+  --agent:#3B4A6B; --agent-soft:#E6EAF3;
+  --shadow:0 1px 2px rgba(27,21,48,.06), 0 10px 30px rgba(27,21,48,.07);
+  --display:"Sora","Manrope","Segoe UI",sans-serif;
+  --body:"Manrope","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#120E1C; --surface:#1B1628; --surface-2:#241D35; --ink:#EFEAF7; --ink-2:#C6BFD9; --muted:#8F88A6; --line:#322A47; --line-2:#443A5E;
+  --nu:#C084F5; --nu-ink:#D3A4FA; --nu-soft:#2E1F46;
+  --struct:#4CC3CC; --struct-soft:#123A3E; --struct-ink:#7ADDE4;
+  --concept:#C084F5; --concept-soft:#2E1F46; --concept-ink:#D3A4FA;
+  --fn:#F0A24B; --fn-soft:#3E2A12; --fn-ink:#F7BE7A;
+  --act:#F07AA0; --act-soft:#40182A; --act-ink:#F7A3BE;
+  --agent:#A9B6D6; --agent-soft:#222A3D;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --bg:#120E1C; --surface:#1B1628; --surface-2:#241D35; --ink:#EFEAF7; --ink-2:#C6BFD9; --muted:#8F88A6; --line:#322A47; --line-2:#443A5E;
+  --nu:#C084F5; --nu-ink:#D3A4FA; --nu-soft:#2E1F46;
+  --struct:#4CC3CC; --struct-soft:#123A3E; --struct-ink:#7ADDE4;
+  --concept:#C084F5; --concept-soft:#2E1F46; --concept-ink:#D3A4FA;
+  --fn:#F0A24B; --fn-soft:#3E2A12; --fn-ink:#F7BE7A;
+  --act:#F07AA0; --act-soft:#40182A; --act-ink:#F7A3BE;
+  --agent:#A9B6D6; --agent-soft:#222A3D;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--display);margin:0;line-height:1.15;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:clamp(1.7rem,3.4vw,2.5rem);font-weight:700}
+h2{font-size:clamp(1.25rem,2.2vw,1.6rem);font-weight:600}
+h3{font-size:1.02rem;font-weight:600}
+p{margin:0}
+a{color:var(--nu-ink)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--nu);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1480px;margin:0 auto;padding-inline:24px;padding-block:0 96px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:18px 28px;align-items:flex-end;justify-content:space-between;padding-block:30px 18px;border-bottom:1px solid var(--line)}
+.top .brand{display:grid;gap:8px;max-width:820px}
+.eyebrow{font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.thesis{color:var(--ink-2);font-size:1.02rem;max-width:70ch}
+.thesis b{color:var(--ink);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-2);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.8rem;color:var(--ink-2)}
+.chip i{width:9px;height:9px;border-radius:50%;flex:none}
+.chip.st i{background:var(--struct)} .chip.co i{background:var(--concept)} .chip.fn i{background:var(--fn)} .chip.ac i{background:var(--act)}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding-block:14px;border-bottom:1px solid var(--line)}
+.controls .lbl{font-size:.78rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-right:4px}
+.tog{display:inline-flex;align-items:center;gap:8px;font-size:.86rem;color:var(--ink-2);cursor:pointer;user-select:none}
+.tog input{accent-color:var(--nu);width:15px;height:15px;margin:0}
+.tog .sw{width:10px;height:10px;border-radius:3px}
+.spacer{flex:1}
+.btn{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;padding:7px 12px;font-size:.86rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--nu)}
+.btn.primary{background:var(--nu);border-color:var(--nu);color:#fff}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn[disabled]{opacity:.45;cursor:default}
+
+/* stage */
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;padding-block:20px}
+.canvas{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow-x:auto;overflow-y:hidden}
+.canvas svg{display:block;width:100%;min-width:1040px;height:auto;font-family:var(--body);color:var(--ink)}
+.inspector{position:sticky;top:16px;align-self:start;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px 18px 20px;display:grid;gap:12px;max-height:calc(100vh - 32px);overflow:auto}
+.inspector .kind{display:inline-flex;align-items:center;gap:8px;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:4px 10px;border-radius:999px;width:max-content}
+.kind.st{background:var(--struct-soft);color:var(--struct-ink)} .kind.co{background:var(--concept-soft);color:var(--concept-ink)} .kind.fn{background:var(--fn-soft);color:var(--fn-ink)} .kind.ac{background:var(--act-soft);color:var(--act-ink)} .kind.ag{background:var(--agent-soft);color:var(--agent)}
+.inspector h3{font-size:1.15rem}
+.inspector .ex{font-family:var(--mono);font-size:.8rem;background:var(--surface-2);border-radius:8px;padding:9px 11px;color:var(--ink);word-break:break-word}
+.inspector .ex small{display:block;font-family:var(--body);color:var(--muted);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.inspector .def{color:var(--ink-2);font-size:.93rem}
+.kv{display:grid;gap:6px;font-size:.86rem}
+.kv .row{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.kv .row b{color:var(--muted);font-weight:600;font-size:.76rem;letter-spacing:.05em;text-transform:uppercase;padding-top:2px}
+.links{display:grid;gap:5px;font-size:.85rem}
+.links .l{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.links .rel{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+.links button{border:0;background:transparent;padding:0;color:var(--nu-ink);text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-size:.85rem}
+.why{border-left:3px solid var(--nu);background:var(--nu-soft);padding:10px 12px;border-radius:0 8px 8px 0;font-size:.88rem;color:var(--ink)}
+.why b{display:block;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--nu-ink);margin-bottom:3px}
+.tag{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--muted);margin-left:6px;vertical-align:middle;letter-spacing:.03em}
+.tag.real{border-color:var(--struct);color:var(--struct-ink)}
+
+/* svg pieces */
+.band-lbl{font-size:11px;letter-spacing:.09em;font-weight:700;fill:var(--muted);text-transform:uppercase}
+.band-sub{font-size:11px;fill:var(--muted)}
+.node{cursor:pointer}
+.node rect.box{stroke-width:1.4;transition:opacity .2s, stroke-width .15s}
+.node text{pointer-events:none}
+.node .t{font-size:12.5px;font-weight:700;fill:var(--ink)}
+.node .s{font-size:10.5px;font-family:var(--mono);fill:var(--ink-2)}
+.node .k{font-size:9px;font-weight:700;letter-spacing:.08em;fill:var(--muted)}
+.node.st rect.box{fill:var(--struct-soft);stroke:var(--struct)}
+.node.co rect.box{fill:var(--concept-soft);stroke:var(--concept)}
+.node.fn rect.box{fill:var(--fn-soft);stroke:var(--fn)}
+.node.ac rect.box{fill:var(--act-soft);stroke:var(--act)}
+.node.ag rect.box{fill:var(--agent-soft);stroke:var(--agent)}
+.node.sel rect.box{stroke-width:3}
+.node.hi rect.box{stroke-width:2.4}
+.edge path,.edge line{fill:none;stroke:var(--line-2);stroke-width:1.5}
+.edge.st path,.edge.st line{stroke:var(--struct)}
+.edge.co path,.edge.co line{stroke:var(--concept)}
+.edge.x path,.edge.x line{stroke:var(--ink-2);stroke-dasharray:5 4;opacity:.75}
+.edge.ag path,.edge.ag line{stroke:var(--agent)}
+.edge .el{font-size:10px;font-family:var(--mono);fill:var(--ink-2)}
+.edge .eb{fill:var(--surface);stroke:none}
+.edge.hi path,.edge.hi line{stroke-width:2.6;opacity:1}
+.bus{stroke:var(--agent);stroke-width:1.5}
+.bus-t{stroke:var(--agent);stroke-width:1.2;opacity:.6}
+svg.dimmed .node:not(.hi):not(.sel){opacity:.22}
+svg.dimmed .edge:not(.hi){opacity:.12}
+svg .node,svg .edge{transition:opacity .25s}
+.hidden-layer{display:none}
+
+/* walkthrough */
+.walk{margin-top:28px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:20px;display:grid;gap:14px}
+.walk .head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.step{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);cursor:pointer;text-align:left;display:grid;gap:4px;align-content:start}
+.step .n{font-family:var(--display);font-weight:700;font-size:.78rem;color:var(--muted)}
+.step .t{font-weight:600;font-size:.86rem;line-height:1.3}
+.step.on{border-color:var(--nu);background:var(--nu-soft)}
+.step.on .n{color:var(--nu-ink)}
+.walk .detail{border-top:1px solid var(--line);padding-top:12px;color:var(--ink-2);font-size:.94rem;max-width:90ch}
+.walk .detail b{color:var(--ink)}
+
+/* sections */
+section.cat{margin-top:44px;display:grid;gap:14px}
+.sec-head{display:grid;gap:6px;max-width:80ch}
+.sec-head p{color:var(--ink-2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.88rem}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+thead th{background:var(--surface-2);font-family:var(--display);font-weight:600;font-size:.84rem}
+tr:last-child td{border-bottom:0}
+td .mono{font-size:.8rem}
+td .sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:0}
+.principles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+.pr{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:6px;border-top:4px solid var(--line-2)}
+.pr.st{border-top-color:var(--struct)} .pr.co{border-top-color:var(--concept)} .pr.fa{border-top-color:var(--act)}
+.pr p{color:var(--ink-2);font-size:.9rem}
+.foot{margin-top:44px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:.8rem;display:grid;gap:6px}
+.foot a{color:var(--muted)}
+.legend-note{font-size:.8rem;color:var(--muted)}
+
+@media (max-width:1560px){
+  .stage{grid-template-columns:1fr}
+  .inspector{position:static;max-height:none;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);grid-auto-flow:dense;column-gap:24px}
+  .inspector > .kind, .inspector > h3, .inspector > .def, .inspector > .ex, .inspector > .kv{grid-column:1}
+  .inspector > .links, .inspector > .why, .inspector > .legend-note{grid-column:2}
+}
+@media (max-width:1060px){
+  .inspector{grid-template-columns:1fr}
+  .inspector > *{grid-column:1 !important}
+  .grid2,.principles{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .wrap{padding-inline:16px}
+  .top{padding-block:22px 14px}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  svg .node,svg .edge,.node rect.box{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="brand">
+    <div class="eyebrow">Developer productivity · AI software development lifecycle</div>
+    <h1>Nubank Engineering Ontology</h1>
+    <p class="thesis">One context layer under every code-review agent. A <b>structural tier</b> that is deterministic and identical for every repo, a <b>concept tier</b> each squad fills with its own domain, and the <b>functions and actions</b> an agent calls on top &mdash; the same four primitives Palantir's ontology uses (object, link, function, action), applied to code instead of enterprise data.</p>
+    <div class="chips">
+      <span class="chip st"><i></i>Structural tier &mdash; tree-sitter, no LLM, ms-fresh</span>
+      <span class="chip co"><i></i>Concept tier &mdash; LLM-enriched, squad-owned</span>
+      <span class="chip fn"><i></i>Functions &mdash; read, compute</span>
+      <span class="chip ac"><i></i>Actions &mdash; write, validated, audited</span>
+    </div>
+  </div>
+</header>
+
+<div class="controls" role="group" aria-label="Diagram layers">
+  <span class="lbl">Layers</span>
+  <label class="tog"><input type="checkbox" id="ly-ag" checked><span class="sw" style="background:var(--agent)"></span>Agent surface</label>
+  <label class="tog"><input type="checkbox" id="ly-fn" checked><span class="sw" style="background:var(--fn)"></span>Functions</label>
+  <label class="tog"><input type="checkbox" id="ly-ac" checked><span class="sw" style="background:var(--act)"></span>Actions</label>
+  <label class="tog"><input type="checkbox" id="ly-co" checked><span class="sw" style="background:var(--concept)"></span>Concept tier</label>
+  <label class="tog"><input type="checkbox" id="ly-st" checked><span class="sw" style="background:var(--struct)"></span>Structural tier</label>
+  <label class="tog"><input type="checkbox" id="ly-x" checked><span class="sw" style="background:var(--ink-2)"></span>Cross-tier anchors</label>
+  <span class="spacer"></span>
+  <button class="btn" id="btn-clear" type="button">Clear selection</button>
+</div>
+
+<div class="stage">
+  <div class="canvas" id="canvas"></div>
+  <aside class="inspector" id="inspector" aria-live="polite"></aside>
+</div>
+
+<div class="walk" id="walk">
+  <div class="head">
+    <div>
+      <div class="eyebrow">Walk the mechanism</div>
+      <h2>What happens when a PR opens against <code>nubank/nodely</code></h2>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="w-prev" type="button">&larr; Back</button>
+      <button class="btn primary" id="w-play" type="button">&#9654; Play</button>
+      <button class="btn" id="w-next" type="button">Next &rarr;</button>
+    </div>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="detail" id="w-detail"></div>
+</div>
+
+<div class="principles">
+  <div class="pr st"><h3>Structural: fixed schema, zero variation</h3><p>Repository, namespace, function, type, test, interface, PR, CI, deploy &mdash; parsed deterministically from every repo, Clojure or Go or Dart alike. The platform team owns the schema; nobody customizes it. Regenerated in milliseconds, git-ignored like <code>node_modules</code>.</p></div>
+  <div class="pr co"><h3>Concept: fixed schema, high variation</h3><p>Service, capability, domain concept, invariant, control, standard, squad, incident, data class. The <em>shape</em> is the same everywhere; the <em>content</em> is each squad's own vocabulary, LLM-drafted from source and human-corrected, cached by content hash.</p></div>
+  <div class="pr fa"><h3>Functions read, actions write</h3><p>Functions compute over both tiers and never mutate. Actions change state only after validation &mdash; owner exists, approver named, no live callers &mdash; and every execution lands in an audit log. Fail closed, never open.</p></div>
+</div>
+
+<section class="cat" id="cat-objects">
+  <div class="sec-head"><h2>Object types</h2><p>Every node in the diagram is an object type. Examples marked <span class="tag real">public repo</span> come from Nubank's open-source GitHub; the rest are illustrative placeholders for what internal product repos would carry.</p></div>
+  <div class="grid2">
+    <div class="tbl"><table id="tbl-st"><thead><tr><th>Structural tier</th><th>Definition</th><th>Nubank example</th></tr></thead><tbody></tbody></table></div>
+    <div class="tbl"><table id="tbl-co"><thead><tr><th>Concept tier</th><th>Definition</th><th>Nubank example</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<section class="cat" id="cat-links">
+  <div class="sec-head"><h2>Link types</h2><p>Solid edges are computed (structural) or curated (concept). Dashed edges are the cross-tier anchors: every concept node is <code>realized_by</code> structural nodes, with file citations and content hashes, so an agent can always drop from "what this means" to "where it lives".</p></div>
+  <div class="tbl"><table id="tbl-links"><thead><tr><th>Link</th><th>From &rarr; To</th><th>Tier</th><th>How it's produced</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section class="cat" id="cat-fn">
+  <div class="sec-head"><h2>Functions</h2><p>Read-only computations an agent calls through one MCP tool surface. The first three ship with Graft today; the rest are what the ontology adds once concept nodes exist.</p></div>
+  <div class="tbl"><table id="tbl-fn"><thead><tr><th>Function</th><th>Input &rarr; Output</th><th>Traverses</th><th>Why a reviewer needs it</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section class="cat" id="cat-ac">
+  <div class="sec-head"><h2>Actions</h2><p>Validated write-backs. Each has preconditions the platform checks before execution, a side effect, and an audit entry. An agent can propose any of them; the validation decides whether it runs.</p></div>
+  <div class="tbl"><table id="tbl-ac"><thead><tr><th>Action</th><th>Writes</th><th>Validation (fail closed)</th><th>Who can invoke</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<footer class="foot">
+  <div>Grounding: <a href="https://github.com/trailhq/Graft">trailhq/Graft</a> (structural + concept tiers, MCP tools) &middot; Nubank public repositories: <a href="https://github.com/nubank/nodely">nodely</a>, <a href="https://github.com/nubank/state-flow">state-flow</a>, <a href="https://github.com/nubank/matcher-combinators">matcher-combinators</a>, <a href="https://github.com/nubank/ordnungsamt">ordnungsamt</a>, <a href="https://github.com/nubank/github-actions">github-actions</a>, <a href="https://github.com/nubank/k8s-api">k8s-api</a>, <a href="https://github.com/nubank/vessel">vessel</a>, <a href="https://github.com/nubank/abracad">abracad</a>, <a href="https://github.com/nubank/burrow">burrow</a>, <a href="https://github.com/nubank/fklearn">fklearn</a>, <a href="https://github.com/nubank/NuOpenLineage">NuOpenLineage</a>.</div>
+  <div>Ontology primitives follow Palantir's object / link / function / action model. Internal product objects (Pix transfer, ledger entry, squads, incidents) are illustrative. Prepared by Gaurav Mehta.</div>
+</footer>
+
+</div>
+
+<script>
+/* ---------- data model ---------- */
+const COLS = [40,240,440,640,840,1040,1240,1440];
+const W = 160;
+
+const NODES = [
+  // agent surface
+  {id:'agent', tier:'ag', x:240, y:48, w:440, h:54, name:'Code-review agent', sub:'Devin · homegrown squad agents · Claude Code',
+   def:'Any agent that reviews a pull request. It never parses the repo itself; it asks the ontology through one tool surface, so improving the ontology lifts every agent at once.',
+   ex:'Devin.ai review bot; a squad’s own Clojure review agent; Claude Code with the MCP server registered', real:false,
+   props:[['Consumes','Functions (read) and Actions (write) via MCP'],['Vendor lock-in','None — the tool surface is the contract, not the model']],
+   why:'The agent is interchangeable. The context layer is the asset.'},
+  {id:'mcp', tier:'ag', x:840, y:48, w:560, h:54, name:'MCP tool surface', sub:'discover · relate · query · execute',
+   def:'One flat set of verbs every agent uses instead of dozens of bespoke API calls. Discover finds nodes, relate walks links, query computes, execute runs a validated action.',
+   ex:'graft init registers the server; Graft’s native tools sit beside the ontology functions below', real:true,
+   props:[['Protocol','Model Context Protocol (MCP)'],['Freshness','Every query rebuilds stale structural sections before answering'],['Governance seam','AGENTS.md injects org-wide rules into every agent’s context']],
+   why:'A new agent plugs in with zero ontology-side work.'},
+
+  // functions
+  {id:'f_find', tier:'fn', col:0, y:170, name:'find_code', sub:'graft_find_code · ships today', graft:true,
+   def:'Ranked concept and structural nodes for a natural-language query, with the relevant source inlined.', ex:'"where do branch nodes get evaluated?" → nodely.engine.* nodes + crux lines', real:true,
+   io:'query → ranked nodes + inlined context', touches:['ns','fn','type','service'], why:'Replaces grep-open-follow-back-out loops that burn tokens on every review.'},
+  {id:'f_trace', tier:'fn', col:1, y:170, name:'trace_calls', sub:'graft_trace_calls · ships today', graft:true,
+   def:'Transitive callers and callees of a symbol, resolved across files and namespaces.', ex:'eval-key → engine dispatch → core.async engine; 3 test flows exercise the path', real:true,
+   io:'symbol → dependency graph (callers, callees, tests)', touches:['fn','fn2','test','endpoint'], why:'A reviewer sees the full path a change can reach, not just the diff.'},
+  {id:'f_fresh', tier:'fn', col:2, y:170, name:'check_freshness', sub:'graft_check_freshness · ships today', graft:true,
+   def:'Detects drift between the graph and the working tree using content hashes; stale sections rebuild in milliseconds.', ex:'src/nodely/api/v0.clj hash changed → 4 structural nodes rebuilt, 1 concept node flagged stale', real:true,
+   io:'repo state → stale nodes + rebuild', touches:['repo','ns','fn','type'], why:'The agent never reasons over a graph that no longer matches the code.'},
+  {id:'f_blast', tier:'fn', col:3, y:170, name:'blast_radius', sub:'ontology function · adds',
+   def:'From a changed symbol, walk calls and tests in the structural tier, then follow realized_by up to the services, capabilities and squads that depend on it.', ex:'change to eval-key → dependency-graph engine → every squad whose service declares nodely as a dependency', real:false,
+   io:'diff → impacted services, capabilities, owners, tests', touches:['pr','fn','fn2','test','endpoint','service','capability','squad'], why:'Turns "this looks fine" into "these three services and two squads are affected".'},
+  {id:'f_owner', tier:'fn', col:4, y:170, name:'find_owner', sub:'ontology function · adds',
+   def:'Resolves a symbol or path to its owning squad and on-call, via CODEOWNERS and the concept tier.', ex:'nodely.api.v0 → owning squad + on-call rotation', real:false,
+   io:'symbol or path → squad, on-call, escalation', touches:['repo','ns','squad','service'], why:'Review requests route to a human who can actually approve.'},
+  {id:'f_scope', tier:'fn', col:5, y:170, name:'compliance_scope', sub:'ontology function · adds',
+   def:'Which data classes, invariants and regulatory controls a change touches, by walking type → data class → rule → control.', ex:'schema change on a record tagged PII → LGPD control in scope; a settlement path → BACEN control', real:false,
+   io:'diff → controls, data classes, invariants in scope', touches:['type','dataclass','domain','rule','control'], why:'Regulated changes get the extra reviewer before merge, not after an audit finding.'},
+  {id:'f_risk', tier:'fn', col:6, y:170, name:'risk_score', sub:'ontology function · adds',
+   def:'A composite from blast radius, test coverage of the changed path, data classification, and incident history on the same nodes.', ex:'wide blast radius + no state-flow coverage + prior incident on this path → high', real:false,
+   io:'PR → score + the evidence behind it', touches:['pr','test','dataclass','rule','incident','deploy'], why:'Lets review effort follow risk instead of PR size.'},
+  {id:'f_golden', tier:'fn', col:7, y:170, name:'golden_path_check', sub:'ontology function · adds',
+   def:'Conformance of a repo against the org standards: test framework, assertion library, CI policy workflow, pending ordnungsamt migrations.', ex:'repo lacks state-flow integration tests; 2 migrations from migrations.edn not yet applied', real:false,
+   io:'repo → conformance report + pending migrations', touches:['repo','ci','pr','standard','control'], why:'Standardization becomes a measurable default, not a wiki page.'},
+
+  // actions
+  {id:'a_review', tier:'ac', col:0, y:250, name:'request_review', sub:'assigns reviewers · audits',
+   def:'Routes the PR to the owning squad and, when a control is in scope, to the compliance reviewer for that control.', ex:'PR #482 → owning squad reviewer + LGPD reviewer (PII schema touched)', real:false,
+   writes:'Reviewer assignments on the PR; audit entry with the evidence used', valid:'Owning squad resolves; control reviewer exists; PR not already merged', who:'Agent (proposes) · platform executes', touches:['pr','squad','control','service'],
+   why:'The code-review use case, end to end: evidence in, accountable human out.'},
+  {id:'a_tag', tier:'ac', col:1, y:250, name:'tag_data_class', sub:'PII · financial · internal',
+   def:'Marks a type or schema as carrying a data classification.', ex:'defrecord Customer → PII', real:false,
+   writes:'data_class property on the type; classified_as link', valid:'Requester is owner or security; class is from the approved list', who:'Human or agent with owner approval', touches:['type','dataclass'],
+   why:'Compliance scope is only as good as the tags underneath it.'},
+  {id:'a_exc', tier:'ac', col:2, y:250, name:'approve_exception', sub:'documented, named, expiring',
+   def:'Records an approved deviation from a golden-path standard for one repo.', ex:'repo keeps its own test harness for 6 months; approver named', real:false,
+   writes:'exception node linked to standard and repo, with approver and expiry', valid:'Named approver; expiry date set; reason present', who:'Platform PM or architecture reviewer', touches:['standard','repo','squad'],
+   why:'Exceptions become visible and time-boxed instead of silent forks.'},
+  {id:'a_note', tier:'ac', col:3, y:250, name:'annotate_node', sub:'human note, survives regen',
+   def:'Attaches a human note to a concept node; preserved when the LLM summary regenerates.', ex:'"Branch engines must stay side-effect free — see incident 2024-11"', real:false,
+   writes:'note on the concept node', valid:'Author is a member of the owning squad', who:'Engineer', touches:['service','domain'],
+   why:'Tribal knowledge lands where the next agent will read it.'},
+  {id:'a_mig', tier:'ac', col:4, y:250, name:'open_migration_pr', sub:'ordnungsamt auto-refactor',
+   def:'Opens the repo-wide refactor PR a standard requires, the way ordnungsamt already does across Nubank repos.', ex:'migrations.edn → PR labeled auto-refactor on 40 repos', real:true,
+   writes:'A PR per target repo; migration recorded in .migrations.edn', valid:'Migration declared; dry-run passes; repo has no active exception', who:'Platform team · agent on schedule', touches:['standard','pr','repo','ci'],
+   why:'Standards ship as code changes, not announcements.'},
+  {id:'a_dep', tier:'ac', col:5, y:250, name:'mark_deprecated', sub:'with replacement',
+   def:'Flags a namespace or function as deprecated and names its replacement.', ex:'nodely.api.v0/… → v1 equivalent', real:false,
+   writes:'deprecated property; replaced_by link', valid:'No live callers outside the owning repo, or a migration exists', who:'Owning squad', touches:['fn','ns','fn2'],
+   why:'Agents stop recommending the old path the moment it is retired.'},
+  {id:'a_inc', tier:'ac', col:6, y:250, name:'link_incident', sub:'postmortem → nodes',
+   def:'Connects a postmortem to the service, invariant and deploy it involved.', ex:'incident → violated "conditional deps evaluate lazily" → deploy sha', real:false,
+   writes:'impacted / violated / triggered_by links', valid:'Postmortem approved; nodes exist', who:'Incident commander', touches:['incident','service','deploy','rule'],
+   why:'risk_score can see history; the same class of bug is caught in review next time.'},
+  {id:'a_refresh', tier:'ac', col:7, y:250, name:'refresh_node', sub:'governed LLM provider',
+   def:'Regenerates a concept node’s summary from its cited sources.', ex:'rebuild "Dependency-graph engine" node after api/v0 changed', real:false,
+   writes:'new summary + updated source hashes; human notes preserved', valid:'Content hash changed; provider is the approved enterprise model', who:'Automatic on drift · human on demand', touches:['service','ns','fn'],
+   why:'Concept nodes stay fresh without proprietary code leaving governed models.'},
+
+  // concept tier (row 1)
+  {id:'control', tier:'co', col:0, y:380, name:'Compliance control', sub:'BACEN · LGPD · SOX change control', k:'CONTROL',
+   def:'A regulatory or listing obligation the engineering org must evidence. Nubank answers to the Brazilian central bank, LGPD, and as a NYSE-listed company, SOX change controls.', ex:'BACEN resolution on instant payments; LGPD for personal data; SOX for change management', real:false,
+   props:[['Owner','Compliance / platform'],['Evidence','Which CI policy checks and reviews satisfy it']], why:'The audit trail is designed backward from what a regulator asks for.'},
+  {id:'standard', tier:'co', col:1, y:380, name:'Golden-path standard', sub:'state-flow · matcher-combinators · ordnungsamt', k:'STANDARD',
+   def:'An org-wide engineering default with a paved road behind it. Repos conform, or hold a documented exception.', ex:'Integration tests in state-flow; nested assertions with matcher-combinators; repo-wide changes via ordnungsamt migrations', real:true,
+   props:[['Enforced by','nubank/github-actions governance workflows'],['Exceptions','Named approver, expiry date']], why:'Consistency is a property of the graph, not of a wiki.'},
+  {id:'squad', tier:'co', col:2, y:380, name:'Squad / owner', sub:'owning team · on-call', k:'OWNER',
+   def:'The team accountable for a service and its repos. Derived from CODEOWNERS and the service catalog, corrected by humans.', ex:'The squad maintaining nodely and its engines', real:false,
+   props:[['Source','CODEOWNERS + catalog'],['Used by','find_owner, request_review']], why:'Every review ends with a named human, not a bot.'},
+  {id:'service', tier:'co', col:3, y:380, name:'Service / subsystem', sub:'Dependency-graph evaluation engine', k:'SERVICE',
+   def:'A concept node: a plain-English summary of what a subsystem does, its crux logic, and typed links to what it depends on — LLM-drafted from source, cached by content hash, corrected by the owning squad.', ex:'nodely: declares data-dependent computations and executes them with pluggable engines (sync lazy, core.async, virtual threads)', real:true,
+   props:[['Sources','src/nodely/api/v0.clj + engine namespaces, with hashes'],['Links','implements, manages, owned_by, depends_on'],['Notes','Human notes survive regeneration']], why:'This is the node a reviewer reads first: what the code is for.'},
+  {id:'capability', tier:'co', col:4, y:380, name:'Capability', sub:'Declarative, conditional computation', k:'CAPABILITY',
+   def:'The business or platform ability a service delivers, independent of how it is implemented.', ex:'"Express strong and conditional data dependencies without coupling to how data is fetched" — nodely’s stated purpose', real:true,
+   props:[['Delivered by','service'],['Entry point','a function in the structural tier']], why:'Blast radius is reported in capabilities leadership recognizes, not file paths.'},
+  {id:'domain', tier:'co', col:5, y:380, name:'Domain concept', sub:'Node · Environment (nodely) · Pix transfer', k:'DOMAIN',
+   def:'A thing the business or platform reasons about. In a library it is the core abstraction; in a product repo it is Account, Pix transfer, Ledger entry.', ex:'nodely: value, leaf, sequence and branch nodes in an environment · product repos: Pix transfer, ledger entry (illustrative)', real:true,
+   props:[['Modeled by','defrecord / protocol / Avro schema'],['Classified as','PII · financial · internal']], why:'Squad vocabulary, in the same schema everywhere.'},
+  {id:'rule', tier:'co', col:6, y:380, name:'Invariant / business rule', sub:'"branch nodes stay side-effect free"', k:'RULE',
+   def:'A statement that must always hold, written in the squad’s words and anchored to the tests that enforce it.', ex:'nodely: conditional dependencies are evaluated only when the branch selects them · product: "a ledger must balance" (illustrative)', real:true,
+   props:[['Enforced by','state-flow integration tests'],['Derived from','a compliance control, when regulatory']], why:'A reviewer checks a change against the rule, not against their memory of it.'},
+  {id:'incident', tier:'co', col:7, y:380, name:'Incident / postmortem', sub:'what broke, which rule, which deploy', k:'INCIDENT',
+   def:'A postmortem linked to the service it impacted, the invariant it violated and the deploy that triggered it.', ex:'Postmortem: lazy engine evaluated a branch eagerly under load (illustrative)', real:false,
+   props:[['Links','impacted, violated, triggered_by'],['Feeds','risk_score']], why:'History becomes a signal in the next review, automatically.'},
+  // concept row 2
+  {id:'dataclass', tier:'co', col:5, y:490, name:'Data classification', sub:'PII · financial · internal', k:'DATA CLASS',
+   def:'The sensitivity class of a domain concept, propagated to the types and schemas that carry it.', ex:'Customer → PII; training features in fklearn pipelines → financial/PII (illustrative)', real:false,
+   props:[['Set by','tag_data_class (validated)'],['Consumed by','compliance_scope, risk_score']], why:'Determines which reviewer a change needs and where data may be processed.'},
+
+  // structural tier (row 1)
+  {id:'ci', tier:'st', col:0, y:660, name:'CI workflow', sub:'nubank/github-actions policies', k:'WORKFLOW',
+   def:'A pipeline definition and the policy checks it runs. Parsed from workflow files.', ex:'nubank/github-actions: "Enterprise GitHub Actions to enforce governance policies"', real:true,
+   props:[['Parsed from','.github/workflows'],['Gates','pull requests']], why:'Where a compliance control becomes a machine-checked gate.'},
+  {id:'pr', tier:'st', col:1, y:660, name:'Pull request', sub:'#482 · files + hashes changed', k:'CHANGE',
+   def:'A proposed change: the files it modifies, the symbols those files define, the author, and any auto-refactor label.', ex:'ordnungsamt opens PRs labeled auto-refactor with cumulative migration results', real:true,
+   props:[['Modifies','files → namespaces → functions'],['Label','auto-refactor when opened by a migration']], why:'The unit the agent reviews.'},
+  {id:'repo', tier:'st', col:2, y:660, name:'Repository', sub:'nubank/nodely · Clojure', k:'REPO',
+   def:'A git repository with its language, build config, workspaces and dependency manifest.', ex:'nubank/nodely (Clojure) · nubank/fklearn (Python) · nubank/flutter-passkeys (Dart)', real:true,
+   props:[['Language','Clojure · Go · Dart · Python · Scala'],['Build','deps.edn / project.clj · go.mod · pubspec.yaml'],['Graph cache','graft/.graph, git-ignored']], why:'Same schema for every one of the 100+ public repos and every internal one.'},
+  {id:'ns', tier:'st', col:3, y:660, name:'Namespace / module', sub:'nodely.api.v0', k:'MODULE',
+   def:'A Clojure ns, Go package or Dart library and the file that defines it, with a content hash for staleness.', ex:'nodely.api.v0 — the public API namespace users evaluate nodes through', real:true,
+   props:[['File','src/nodely/api/v0.clj + sha'],['Requires','other namespaces and external artifacts']], why:'The concept tier anchors here: service → realized_by → namespace.'},
+  {id:'fn', tier:'st', col:4, y:660, name:'Function', sub:'nodely.api.v0/eval-key', k:'SYMBOL',
+   def:'A defn, defmacro or method with its signature, callers and callees resolved across files (tree-sitter, LSP when available).', ex:'eval-key: evaluate a target node in an environment with a chosen engine', real:true,
+   props:[['Signature','[env key & opts]'],['Edges','calls, called_by, tested_by, implements']], why:'The finest-grained node a diff touches.'},
+  {id:'type', tier:'st', col:5, y:660, name:'Type / protocol / schema', sub:'engine protocol · Avro via abracad', k:'TYPE',
+   def:'A defrecord, defprotocol, Go struct or Avro schema; the thing a data class attaches to.', ex:'nodely engine implementations (sync lazy, core.async, virtual threads); Avro schemas serialized with abracad', real:true,
+   props:[['Implemented by','functions'],['Carries','data classification']], why:'Compliance scope starts here.'},
+  {id:'test', tier:'st', col:6, y:660, name:'Test', sub:'state-flow flow · match?', k:'TEST',
+   def:'A deftest or state-flow flow and the symbols it exercises.', ex:'state-flow integration flows asserting with matcher-combinators match?', real:true,
+   props:[['Covers','functions on the call path'],['Enforces','an invariant, when linked']], why:'Coverage of the changed path is a first-class review signal.'},
+  {id:'deploy', tier:'st', col:7, y:660, name:'Deploy / release', sub:'vessel image · k8s-api', k:'RELEASE',
+   def:'A built artifact and the commit it carries, gated by tests and CI.', ex:'Container built with vessel; rolled out through the data-driven k8s-api client', real:true,
+   props:[['Gated by','tests, CI policy'],['Linked to','incidents that it triggered']], why:'Closes the loop from change to production.'},
+  // structural row 2
+  {id:'dep', tier:'st', col:3, y:780, name:'External dependency', sub:'org.clojure/core.async', k:'ARTIFACT',
+   def:'A versioned artifact a namespace requires.', ex:'core.async (nodely’s async engine); finagle via finagle-clojure', real:true,
+   props:[['Coordinate','group/artifact version'],['Risk','upgrade blast radius']], why:'Dependency bumps get the same blast-radius treatment as code.'},
+  {id:'fn2', tier:'st', col:4, y:780, name:'Callee function', sub:'engine dispatch → core.async engine', k:'SYMBOL',
+   def:'A function reached through a resolved call edge; the call graph is transitive.', ex:'eval-key → engine dispatch → async engine evaluation', real:true,
+   props:[['Reached by','trace_calls'],['Cross-file','yes, scope-aware']], why:'Where the change actually lands.'},
+  {id:'endpoint', tier:'st', col:5, y:780, name:'Interface', sub:'HTTP route · Kafka topic', k:'INTERFACE',
+   def:'An externally visible surface: an HTTP route (finagle), a Kafka topic (lag watched by burrow), with the schema on it.', ex:'A Finagle service route; a Kafka topic monitored by burrow', real:true,
+   props:[['Schema','Avro via abracad'],['Consumers','other services (structural, when declared)']], why:'A schema change here is a cross-service change.'},
+];
+
+const EDGES = [
+  // agent
+  {from:'agent', to:'mcp', label:'calls', tier:'ag'},
+  // structural chain (row 1)
+  {from:'ci', to:'pr', label:'gates', tier:'st'},
+  {from:'pr', to:'repo', label:'modifies', tier:'st'},
+  {from:'repo', to:'ns', label:'contains', tier:'st'},
+  {from:'ns', to:'fn', label:'defines', tier:'st'},
+  {from:'fn', to:'type', label:'implements', tier:'st'},
+  {from:'fn', to:'test', label:'tested_by', tier:'st', arc:-70},
+  {from:'test', to:'deploy', label:'gates', tier:'st'},
+  {from:'ns', to:'dep', label:'requires', tier:'st'},
+  {from:'fn', to:'fn2', label:'calls', tier:'st'},
+  {from:'type', to:'endpoint', label:'schema_of', tier:'st'},
+  // concept
+  {from:'control', to:'standard', label:'implemented_by', tier:'co'},
+  {from:'service', to:'squad', label:'owned_by', tier:'co'},
+  {from:'service', to:'capability', label:'implements', tier:'co'},
+  {from:'service', to:'domain', label:'manages', tier:'co', arc:-70},
+  {from:'domain', to:'rule', label:'constrained_by', tier:'co'},
+  {from:'incident', to:'rule', label:'violated', tier:'co'},
+  {from:'domain', to:'dataclass', label:'classified_as', tier:'co'},
+  // cross-tier anchors
+  {from:'control', to:'ci', label:'checked_by', tier:'x'},
+  {from:'standard', to:'pr', label:'applied_by', tier:'x'},
+  {from:'squad', to:'repo', label:'owns (CODEOWNERS)', tier:'x'},
+  {from:'service', to:'ns', label:'realized_by (sources + hash)', tier:'x'},
+  {from:'capability', to:'fn', label:'entry_point', tier:'x'},
+  {from:'dataclass', to:'type', label:'handled_by', tier:'x'},
+  {from:'rule', to:'test', label:'enforced_by', tier:'x'},
+  {from:'incident', to:'deploy', label:'triggered_by', tier:'x'},
+];
+
+const LINK_DOCS = [
+  ['contains / defines','Repository → namespace → function / type','structural','tree-sitter parse of every file; refreshed on content-hash change'],
+  ['calls / called_by','Function → function','structural','scope-aware, cross-file call resolution; compiler-grade via LSP when a language server exists'],
+  ['implements','Function → protocol / type','structural','protocol and interface resolution'],
+  ['requires','Namespace → external artifact','structural','dependency manifest (deps.edn, go.mod, pubspec.yaml)'],
+  ['tested_by','Function → test','structural','symbols referenced from deftest / state-flow flows'],
+  ['schema_of','Type → interface','structural','Avro / route schema declarations'],
+  ['modifies / gates','PR → repo, CI → PR, test → deploy','structural','git, workflow files, release metadata'],
+  ['implements / manages / owned_by','Service → capability / domain / squad','concept','LLM-drafted from source, corrected and approved by the owning squad'],
+  ['constrained_by / violated','Domain → rule, incident → rule','concept','curated: squad writes the invariant, postmortem links the incident'],
+  ['implemented_by / classified_as','Control → standard, domain → data class','concept','platform + compliance curate; tag_data_class action writes the class'],
+  ['realized_by','Concept node → structural nodes','cross-tier','every concept node cites its source files with content hashes; broken hash = stale node'],
+  ['owns / checked_by / applied_by','Squad → repo, control → CI, standard → PR','cross-tier','CODEOWNERS, governance workflows, ordnungsamt migrations'],
+  ['entry_point / handled_by / enforced_by / triggered_by','Capability → function, data class → type, rule → test, incident → deploy','cross-tier','curated once, then kept valid by check_freshness'],
+];
+
+const STEPS = [
+  {t:'PR opens', d:'<b>PR #482</b> modifies <code>src/nodely/api/v0.clj</code>. The structural tier already knows which namespace and functions that file defines, so the agent starts from symbols, not from a diff.', hi:['agent','mcp','pr','repo','ns','fn']},
+  {t:'check_freshness', d:'The content hash for the file changed, so <b>check_freshness</b> rebuilds the four affected structural nodes in milliseconds — tree-sitter, no LLM — and flags the "Dependency-graph engine" concept node as stale. Nothing downstream reasons over a graph that no longer matches the code.', hi:['mcp','f_fresh','repo','ns','fn','type','service']},
+  {t:'trace_calls', d:'<b>trace_calls(eval-key)</b> returns callers, callees across files (engine dispatch → core.async engine) and the state-flow tests that exercise the path. The reviewer sees the reach of the change, not just its text.', hi:['f_trace','fn','fn2','test','endpoint']},
+  {t:'blast_radius', d:'<b>blast_radius</b> follows <code>realized_by</code> upward: the namespace realizes the service, the service implements a capability and is owned by a squad. Impact is now stated in capabilities and owners — the vocabulary leadership already uses.', hi:['f_blast','ns','service','capability','squad']},
+  {t:'compliance_scope + risk_score', d:'<b>compliance_scope</b> walks type → data class → rule → control. <b>risk_score</b> combines blast radius, test coverage on the changed path and incident history on the same nodes. Review effort follows risk, not PR size.', hi:['f_scope','f_risk','type','dataclass','rule','control','incident','test']},
+  {t:'request_review (action)', d:'The agent proposes <b>request_review</b>. Validation runs first: the owning squad resolves, a control is in scope so a compliance reviewer exists, the PR is open. Only then are reviewers assigned and an audit entry written. Fail closed.', hi:['a_review','pr','squad','control','service']},
+  {t:'Review posted with evidence', d:'The agent posts its review with the nodes it used — file, content hash, invariant, control — as citations. A human approves; an auditor can replay exactly what the agent saw. That is what "audit-ready and deterministic" means in practice.', hi:['agent','mcp','pr','squad','ci','deploy']},
+];
+
+/* ---------- helpers ---------- */
+const byId = Object.fromEntries(NODES.map(n=>[n.id,n]));
+NODES.forEach(n=>{ if(n.col!==undefined){ n.x = COLS[n.col]; n.w = W; } if(!n.h){ n.h = (n.tier==='fn'||n.tier==='ac') ? 44 : 64; } });
+const svgNS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs={}, parent){ const e=document.createElementNS(svgNS,tag); for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v); if(parent) parent.appendChild(e); return e; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const tierName = {st:'Structural tier', co:'Concept tier', fn:'Function', ac:'Action', ag:'Agent surface'};
+const anchor = (n, side)=>{ const cx=n.x+n.w/2, cy=n.y+n.h/2; return side==='t'?[cx,n.y]:side==='b'?[cx,n.y+n.h]:side==='l'?[n.x,cy]:[n.x+n.w,cy]; };
+
+/* ---------- render svg ---------- */
+const VBW=1600, VBH=880;
+const svg = el('svg',{viewBox:`0 0 ${VBW} ${VBH}`, role:'img', 'aria-label':'Nubank engineering ontology: an agent surface calling functions and actions over a concept tier anchored to a structural tier.'});
+document.getElementById('canvas').appendChild(svg);
+const defs = el('defs',{},svg);
+for(const [id,color] of [['ah-st','var(--struct)'],['ah-co','var(--concept)'],['ah-x','var(--ink-2)'],['ah-ag','var(--agent)']]){
+  const m = el('marker',{id, viewBox:'0 0 10 10', refX:'9', refY:'5', markerWidth:'7', markerHeight:'7', orient:'auto-start-reverse'},defs);
+  el('path',{d:'M0 0 L10 5 L0 10 z', fill:color},m);
+}
+const gBands = el('g',{},svg), gEdges = el('g',{},svg), gNodes = el('g',{},svg);
+
+// bands
+function band(label, sub, y){ el('text',{x:40,y:y,class:'band-lbl'},gBands).textContent=label; if(sub){ el('text',{x:40,y:y+14,class:'band-sub'},gBands).textContent=sub; } }
+band('AGENT SURFACE', '', 34);
+band('FUNCTIONS — read, compute', 'invoked through the MCP surface; never mutate', 138);
+band('ACTIONS — write, validated, audited', '', 238);
+band('CONCEPT TIER — fixed schema, squad-owned content', 'LLM-drafted from source, human-corrected, cached by content hash', 346);
+band('STRUCTURAL TIER — fixed schema, deterministic', 'tree-sitter + LSP, rebuilt in milliseconds, git-ignored cache', 626);
+
+// buses from mcp to function/action rows
+const gBus = el('g',{class:'edge ag', 'data-bus':'1'},gBands);
+const mcp = byId.mcp;
+el('line',{x1:mcp.x+mcp.w/2, y1:mcp.y+mcp.h, x2:mcp.x+mcp.w/2, y2:156, class:'bus','marker-end':'url(#ah-ag)'},gBus);
+el('line',{x1:COLS[0]+W/2, y1:156, x2:COLS[7]+W/2, y2:156, class:'bus'},gBus);
+COLS.forEach(c=> el('line',{x1:c+W/2,y1:156,x2:c+W/2,y2:170,class:'bus-t'},gBus));
+el('line',{x1:COLS[0]+W/2, y1:236, x2:COLS[7]+W/2, y2:236, class:'bus'},gBus);
+COLS.forEach(c=> el('line',{x1:c+W/2,y1:236,x2:c+W/2,y2:250,class:'bus-t'},gBus));
+el('line',{x1:mcp.x+mcp.w/2-120, y1:mcp.y+mcp.h, x2:mcp.x+mcp.w/2-120, y2:236, class:'bus','marker-end':'url(#ah-ag)'},gBus);
+const busL1 = el('text',{x:mcp.x+mcp.w/2+8, y:132, class:'el', style:'font-size:10px;font-family:var(--mono);fill:var(--agent)'},gBus); busL1.textContent='invokes functions';
+const busL2 = el('text',{x:mcp.x+mcp.w/2-112, y:226, class:'el', style:'font-size:10px;font-family:var(--mono);fill:var(--agent)'},gBus); busL2.textContent='executes actions (after validation)';
+
+// edges
+function edgePath(e){
+  const a=byId[e.from], b=byId[e.to];
+  let p1,p2,mid;
+  if(e.arc){ // arc over intermediate nodes, same row
+    p1=anchor(a,'t'); p2=anchor(b,'t');
+    const cx=(p1[0]+p2[0])/2, cy=p1[1]+e.arc;
+    mid=[cx, cy+ (e.arc/2)*0.5];
+    return {d:`M${p1[0]},${p1[1]} Q${cx},${cy} ${p2[0]},${p2[1]}`, mid:[cx, p1[1]+e.arc*0.5 - 8]};
+  }
+  const sameRow = Math.abs(a.y-b.y)<5, sameCol = Math.abs(a.x-b.x)<5;
+  if(sameRow){ if(a.x<b.x){p1=anchor(a,'r');p2=anchor(b,'l');} else {p1=anchor(a,'l');p2=anchor(b,'r');} }
+  else if(sameCol){ if(a.y<b.y){p1=anchor(a,'b');p2=anchor(b,'t');} else {p1=anchor(a,'t');p2=anchor(b,'b');} }
+  else { if(a.y<b.y){p1=anchor(a,'b');p2=anchor(b,'t');} else {p1=anchor(a,'t');p2=anchor(b,'b');} }
+  mid=[(p1[0]+p2[0])/2,(p1[1]+p2[1])/2];
+  if(sameRow){ mid=[(p1[0]+p2[0])/2, Math.min(a.y,b.y)-6]; }
+  return {d:`M${p1[0]},${p1[1]} L${p2[0]},${p2[1]}`, mid, vertical:sameCol, horizontal:sameRow};
+}
+EDGES.forEach((e,i)=>{
+  const g = el('g',{class:`edge ${e.tier}`, 'data-from':e.from,'data-to':e.to},gEdges);
+  const {d,mid,vertical,horizontal} = edgePath(e);
+  el('path',{d, 'marker-end':`url(#ah-${e.tier==='x'?'x':e.tier})`},g);
+  const tw = e.label.length*6.2+10;
+  let lx=mid[0]-tw/2, ly=mid[1]-7;
+  if(vertical){ lx = mid[0]+6; }
+  if(horizontal){ ly = mid[1]-8; }
+  el('rect',{x:lx,y:ly,width:tw,height:14,rx:3,class:'eb'},g);
+  const t=el('text',{x:lx+5,y:ly+10.5,class:'el'},g); t.textContent=e.label;
+});
+
+// nodes
+NODES.forEach(n=>{
+  const g = el('g',{class:`node ${n.tier}`, 'data-id':n.id, tabindex:'0', role:'button', 'aria-label':`${n.name}: ${n.def}`},gNodes);
+  el('rect',{x:n.x,y:n.y,width:n.w,height:n.h,rx:8,class:'box'},g);
+  const pad=10;
+  if(n.tier==='fn'||n.tier==='ac'){
+    const t=el('text',{x:n.x+pad,y:n.y+18,class:'t'},g); t.textContent=n.name;
+    const s=el('text',{x:n.x+pad,y:n.y+33,class:'s'},g); s.textContent = n.sub.length>24? n.sub.slice(0,23)+'…' : n.sub;
+  } else if(n.tier==='ag'){
+    const t=el('text',{x:n.x+pad,y:n.y+23,class:'t'},g); t.textContent=n.name;
+    const s=el('text',{x:n.x+pad,y:n.y+41,class:'s'},g); s.textContent=n.sub;
+  } else {
+    const k=el('text',{x:n.x+pad,y:n.y+15,class:'k'},g); k.textContent=n.k||'';
+    const t=el('text',{x:n.x+pad,y:n.y+33,class:'t'},g); t.textContent=n.name;
+    const s=el('text',{x:n.x+pad,y:n.y+51,class:'s'},g); s.textContent = n.sub.length>25? n.sub.slice(0,24)+'…' : n.sub;
+  }
+  g.addEventListener('click',()=>select(n.id));
+  g.addEventListener('keydown',ev=>{ if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();select(n.id);} });
+  g.addEventListener('mouseenter',()=>{ if(!selected) highlight(neighbors(n.id)); });
+  g.addEventListener('mouseleave',()=>{ if(!selected) clearHighlight(); });
+});
+
+/* ---------- interaction ---------- */
+let selected=null;
+function neighbors(id){
+  const set=new Set([id]);
+  const n=byId[id];
+  if(n.touches) n.touches.forEach(t=>set.add(t));
+  EDGES.forEach(e=>{ if(e.from===id) set.add(e.to); if(e.to===id) set.add(e.from); });
+  if(n.tier==='st'||n.tier==='co'){ NODES.forEach(m=>{ if(m.touches && m.touches.includes(id)) set.add(m.id); }); }
+  return set;
+}
+function highlight(set){
+  svg.classList.add('dimmed');
+  gNodes.querySelectorAll('.node').forEach(g=> g.classList.toggle('hi', set.has(g.dataset.id)));
+  gEdges.querySelectorAll('.edge').forEach(g=> g.classList.toggle('hi', set.has(g.dataset.from) && set.has(g.dataset.to)));
+}
+function clearHighlight(){
+  svg.classList.remove('dimmed');
+  gNodes.querySelectorAll('.node').forEach(g=>g.classList.remove('hi'));
+  gEdges.querySelectorAll('.edge').forEach(g=>g.classList.remove('hi'));
+}
+function select(id){
+  selected=id;
+  gNodes.querySelectorAll('.node').forEach(g=>g.classList.toggle('sel', g.dataset.id===id));
+  highlight(neighbors(id));
+  renderInspector(byId[id]);
+}
+function clearSel(){ selected=null; gNodes.querySelectorAll('.node').forEach(g=>g.classList.remove('sel')); clearHighlight(); renderInspector(null); }
+document.getElementById('btn-clear').addEventListener('click', clearSel);
+
+function renderInspector(n){
+  const box=document.getElementById('inspector');
+  if(!n){
+    box.innerHTML = `<span class="kind ag">Inspector</span><h3>Click any node</h3><p class="def">Select an object type to see its definition, the Nubank example behind it, its properties and links. Select a function or action to see which nodes it traverses.</p><div class="why"><b>How to read the diagram</b>Top to bottom is the call path: an agent invokes a function or proposes an action; functions read the concept tier for meaning and the structural tier for where it lives. Dashed lines are the anchors that make that drop possible.</div><p class="legend-note">Hover to preview a node’s neighborhood. Use the walkthrough below to play a full code review.</p>`;
+    return;
+  }
+  const tag = n.real ? '<span class="tag real">public repo</span>' : '<span class="tag">illustrative</span>';
+  let html = `<span class="kind ${n.tier}">${tierName[n.tier]}</span><h3>${esc(n.name)}${tag}</h3><p class="def">${esc(n.def)}</p>`;
+  html += `<div class="ex"><small>Nubank example</small>${esc(n.ex)}</div>`;
+  const rows=[];
+  if(n.io) rows.push(['Signature', n.io]);
+  if(n.writes) rows.push(['Writes', n.writes]);
+  if(n.valid) rows.push(['Validation', n.valid]);
+  if(n.who) rows.push(['Invoked by', n.who]);
+  if(n.props) n.props.forEach(p=>rows.push(p));
+  if(rows.length) html += `<div class="kv">${rows.map(r=>`<div class="row"><b>${esc(r[0])}</b><span>${esc(r[1])}</span></div>`).join('')}</div>`;
+  // links
+  const out = EDGES.filter(e=>e.from===n.id).map(e=>`<div class="l"><span class="rel">${esc(e.label)} →</span><button data-go="${e.to}">${esc(byId[e.to].name)}</button></div>`);
+  const inn = EDGES.filter(e=>e.to===n.id).map(e=>`<div class="l"><span class="rel">← ${esc(e.label)}</span><button data-go="${e.from}">${esc(byId[e.from].name)}</button></div>`);
+  const touches = n.touches ? `<div class="l"><span class="rel">traverses</span>${n.touches.map(t=>`<button data-go="${t}">${esc(byId[t].name)}</button>`).join('<span class="rel">·</span>')}</div>` : '';
+  const usedBy = NODES.filter(m=>m.touches && m.touches.includes(n.id)).map(m=>`<button data-go="${m.id}">${esc(m.name)}</button>`);
+  const usedHtml = usedBy.length ? `<div class="l"><span class="rel">used by</span>${usedBy.join('<span class="rel">·</span>')}</div>` : '';
+  if(out.length||inn.length||touches||usedHtml) html += `<div class="links">${out.join('')}${inn.join('')}${touches}${usedHtml}</div>`;
+  html += `<div class="why"><b>Why it matters in review</b>${esc(n.why)}</div>`;
+  box.innerHTML = html;
+  box.querySelectorAll('button[data-go]').forEach(b=>b.addEventListener('click',()=>{ select(b.dataset.go); }));
+}
+renderInspector(null);
+
+// layer toggles
+const layerMap = {'ly-ag':['ag'],'ly-fn':['fn'],'ly-ac':['ac'],'ly-co':['co'],'ly-st':['st'],'ly-x':['x']};
+function applyLayers(){
+  const on = {};
+  for(const [id,tiers] of Object.entries(layerMap)) tiers.forEach(t=> on[t]=document.getElementById(id).checked);
+  gNodes.querySelectorAll('.node').forEach(g=>{ const t=byId[g.dataset.id].tier; g.classList.toggle('hidden-layer', !on[t]); });
+  gEdges.querySelectorAll('.edge').forEach(g=>{
+    const e = EDGES.find(x=>x.from===g.dataset.from && x.to===g.dataset.to);
+    const vis = (e.tier==='x' ? on.x : on[e.tier]) && on[byId[e.from].tier] && on[byId[e.to].tier];
+    g.classList.toggle('hidden-layer', !vis);
+  });
+  gBus.classList.toggle('hidden-layer', !(on.ag && (on.fn||on.ac)));
+}
+Object.keys(layerMap).forEach(id=>document.getElementById(id).addEventListener('change',applyLayers));
+
+/* ---------- walkthrough ---------- */
+let step=-1, timer=null;
+const stepsBox=document.getElementById('steps');
+STEPS.forEach((s,i)=>{
+  const b=document.createElement('button'); b.type='button'; b.className='step'; b.innerHTML=`<span class="n">STEP ${i+1}</span><span class="t">${esc(s.t)}</span>`;
+  b.addEventListener('click',()=>{stop();goStep(i);});
+  stepsBox.appendChild(b);
+});
+function goStep(i){
+  step=i; const s=STEPS[i];
+  stepsBox.querySelectorAll('.step').forEach((b,j)=>b.classList.toggle('on',j===i));
+  document.getElementById('w-detail').innerHTML = s.d;
+  selected='__walk__';
+  gNodes.querySelectorAll('.node').forEach(g=>g.classList.remove('sel'));
+  highlight(new Set(s.hi));
+  document.getElementById('w-prev').disabled = i===0;
+  document.getElementById('w-next').disabled = i===STEPS.length-1;
+}
+function stop(){ if(timer){clearInterval(timer);timer=null;} document.getElementById('w-play').innerHTML='&#9654; Play'; }
+document.getElementById('w-prev').addEventListener('click',()=>{stop(); if(step>0) goStep(step-1);});
+document.getElementById('w-next').addEventListener('click',()=>{stop(); goStep(Math.min(step+1,STEPS.length-1));});
+document.getElementById('w-play').addEventListener('click',()=>{
+  if(timer){stop();return;}
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  goStep(step<0||step>=STEPS.length-1 ? 0 : step+1);
+  document.getElementById('w-play').innerHTML='&#10074;&#10074; Pause';
+  timer=setInterval(()=>{ if(step>=STEPS.length-1){stop();return;} goStep(step+1); }, reduced?6000:3200);
+});
+document.getElementById('w-detail').innerHTML='Press <b>Play</b>, or pick a step, to see which nodes each stage of an agent-led code review touches.';
+document.getElementById('w-prev').disabled=true;
+
+/* ---------- catalog tables ---------- */
+function fill(id, rows){ const tb=document.querySelector(`#${id} tbody`); tb.innerHTML = rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join(''); }
+const tagOf = n => n.real ? '<span class="tag real">public repo</span>' : '<span class="tag">illustrative</span>';
+fill('tbl-st', NODES.filter(n=>n.tier==='st').map(n=>[`<span class="sw" style="background:var(--struct)"></span><b>${esc(n.name)}</b>`, esc(n.def), `${esc(n.ex)} ${tagOf(n)}`]));
+fill('tbl-co', NODES.filter(n=>n.tier==='co').map(n=>[`<span class="sw" style="background:var(--concept)"></span><b>${esc(n.name)}</b>`, esc(n.def), `${esc(n.ex)} ${tagOf(n)}`]));
+fill('tbl-links', LINK_DOCS.map(r=>[`<span class="mono">${esc(r[0])}</span>`, esc(r[1]), esc(r[2]), esc(r[3])]));
+fill('tbl-fn', NODES.filter(n=>n.tier==='fn').map(n=>[`<span class="mono"><b>${esc(n.name)}</b></span>${n.graft?' <span class="tag real">Graft today</span>':' <span class="tag">ontology adds</span>'}`, esc(n.io), n.touches.map(t=>esc(byId[t].name)).join(', '), esc(n.why)]));
+fill('tbl-ac', NODES.filter(n=>n.tier==='ac').map(n=>[`<span class="mono"><b>${esc(n.name)}</b></span>`, esc(n.writes), esc(n.valid), esc(n.who)]));
+</script>
+</body>
+</html>
